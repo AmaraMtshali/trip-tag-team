@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Bus, Users, QrCode, CheckCircle } from 'lucide-react';
+import { Bus, Users, QrCode, CheckCircle, Mail } from 'lucide-react';
 import { createSession } from '@/lib/session';
 import { useToast } from '@/hooks/use-toast';
 
@@ -155,6 +155,21 @@ const HomePage = () => {
               </div>
             </CardContent>
           </Card>
+        </div>
+
+        {/* Contact Link */}
+        <div className="mt-8 text-center">
+          <p className="text-muted-foreground mb-4">
+            Need help? Have questions about Bus Buddy?
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/contact-us')}
+            className="gap-2"
+          >
+            <Mail className="h-4 w-4" />
+            Contact Us
+          </Button>
         </div>
       </main>
     </div>

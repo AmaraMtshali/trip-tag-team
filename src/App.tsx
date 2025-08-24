@@ -7,6 +7,7 @@ import HomePage from "./pages/HomePage";
 import LeaderDashboard from "./pages/LeaderDashboard";
 import MemberJoin from "./pages/MemberJoin";
 import MemberCheckOut from "./pages/MemberCheckOut";
+import ContactPage from "./pages/ContactPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
           <Route path="/leader/:sessionId" element={<LeaderDashboard />} />
           <Route path="/join/:sessionId" element={<MemberJoin />} />
           <Route path="/checkout/:sessionId" element={<MemberCheckOut />} />
+          <Route path="/contact-us" element={<ContactPage />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
