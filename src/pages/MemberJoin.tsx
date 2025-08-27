@@ -153,6 +153,9 @@ const MemberJoin = () => {
           <p className="text-muted-foreground">
             {session.name}
           </p>
+          {session.leaderName && (
+            <p className="text-xs text-muted-foreground mt-1">Created by {session.leaderName}</p>
+          )}
         </div>
 
         {/* Join Form */}

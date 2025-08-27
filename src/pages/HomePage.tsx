@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const HomePage = () => {
   const [tripName, setTripName] = useState('');
+  const [leaderName, setLeaderName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -23,10 +24,18 @@ const HomePage = () => {
       });
       return;
     }
+    if (!leaderName.trim()) {
+      toast({
+        title: "Leader name required",
+        description: "Please enter your name so members know who created this trip.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsCreating(true);
     try {
-      const session = createSession(tripName.trim());
+      const session = createSession(tripName.trim(), leaderName.trim());
       toast({
         title: "Trip session created!",
         description: `Session "${session.name}" is ready for check-ins.`,
@@ -120,6 +129,17 @@ const HomePage = () => {
                 placeholder="e.g., Soccer Game Bus, Museum Field Trip"
                 value={tripName}
                 onChange={(e) => setTripName(e.target.value)}
+                className="h-12 text-base"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="leader-name">Your Name (Leader)</Label>
+              <Input
+                id="leader-name"
+                type="text"
+                placeholder="e.g., Jane Doe"
+                value={leaderName}
+                onChange={(e) => setLeaderName(e.target.value)}
                 className="h-12 text-base"
               />
             </div>

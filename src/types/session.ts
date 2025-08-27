@@ -4,6 +4,7 @@ export interface Member {
   joinedAt: Date;
   status: 'joined' | 'missing' | 'present';
   lastActivity: Date;
+  role?: 'leader' | 'member';
 }
 
 export interface TripSession {
@@ -13,6 +14,8 @@ export interface TripSession {
   expiresAt: Date;
   members: Member[];
   leaderCode: string;
+  leaderName?: string;
+  leaderMemberId?: string;
   checkInUrl: string;
   checkOutUrl?: string;
 }

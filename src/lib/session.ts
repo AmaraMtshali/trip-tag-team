@@ -11,7 +11,7 @@ export function generateMemberId(): string {
   return Math.random().toString(36).substring(2, 8);
 }
 
-export function createSession(name: string): TripSession {
+export function createSession(name: string, leaderName?: string): TripSession {
   const sessionId = generateSessionId();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + SESSION_DURATION);
@@ -23,9 +23,23 @@ export function createSession(name: string): TripSession {
     expiresAt,
     members: [],
     leaderCode: sessionId,
+    leaderName,
     checkInUrl: `${window.location.origin}/join/${sessionId}`,
     checkOutUrl: `${window.location.origin}/checkout/${sessionId}`
   };
+
+  if (leaderName && leaderName.trim()) {
+    const leaderMember: Member = {
+      id: generateMemberId(),
+      name: leaderName.trim(),
+      joinedAt: now,
+      status: 'present',
+      lastActivity: now,
+      role: 'leader'
+    };
+    session.members.push(leaderMember);
+    session.leaderMemberId = leaderMember.id;
+  }
 
   saveSession(session);
   return session;

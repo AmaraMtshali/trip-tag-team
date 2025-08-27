@@ -86,8 +86,8 @@ const LeaderDashboard = () => {
   const handleDownloadCSV = () => {
     if (!session) return;
 
-    const header = ['Name'];
-    const rows = session.members.map((member) => [member.name]);
+    const header = ['Name', 'Role'];
+    const rows = session.members.map((member) => [member.name, member.role === 'leader' ? 'Leader' : 'Member']);
     const csv = [header, ...rows]
       .map((row) => row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(','))
       .join('\n');
@@ -148,6 +148,11 @@ const LeaderDashboard = () => {
             </Button>
           </div>
         </div>
+        {session.leaderName && (
+          <div className="mb-4 text-sm text-muted-foreground">
+            Leader: <span className="font-medium text-foreground">{session.leaderName}</span>
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
