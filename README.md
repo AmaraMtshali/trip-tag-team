@@ -71,3 +71,29 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Contact form email integration
+
+To receive messages from the in-app contact form directly in your inbox, configure an HTTP endpoint and set it via environment variable.
+
+1) Create `.env` at project root:
+
+```
+VITE_CONTACT_ENDPOINT=https://your-email-endpoint.example.com
+```
+
+2) Your endpoint should accept a JSON POST body like:
+
+```
+{
+  "source": "bus-buddy-contact-form",
+  "email": "sender@example.com",
+  "phone": "+1234567890",
+  "linkedin": "https://linkedin.com/in/username", // optional
+  "message": "Hello", // optional
+  "sentAt": "2025-01-01T00:00:00.000Z",
+  "path": "/contact-us"
+}
+```
+
+You can use services like `Formspree`, `Getform`, or a serverless function (Vercel/Netlify/AWS Lambda) that forwards the payload to your email.

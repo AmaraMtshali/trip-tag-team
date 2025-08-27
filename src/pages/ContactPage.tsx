@@ -24,6 +24,7 @@ const ContactPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const contactEndpoint = (import.meta as any).env?.VITE_CONTACT_ENDPOINT as string | undefined;
 
   const {
     register,
@@ -35,20 +36,53 @@ const ContactPage = () => {
   });
 
   const onSubmit = async (data: ContactFormData) => {
+    if (!contactEndpoint) {
+      toast({
+        title: "Contact endpoint not configured",
+        description: "Please set VITE_CONTACT_ENDPOINT in your .env to receive emails.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsSubmitting(true);
-    
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    console.log('Contact form submitted:', data);
-    
-    toast({
-      title: "Message sent!",
-      description: "Thank you for contacting us. We'll get back to you soon.",
-    });
-    
-    reset();
-    setIsSubmitting(false);
+    try {
+      const payload = {
+        source: 'Bus Buddy Contact Form',
+        email: data.email,
+        phone: data.phone,
+        linkedin: data.linkedin || undefined,
+        message: data.message || undefined,
+        sentAt: new Date().toISOString(),
+        path: window.location.pathname
+      };
+
+      const res = await fetch(contactEndpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        throw new Error(`Request failed: ${res.status}`);
+      }
+
+      toast({
+        title: "Message sent!",
+        description: "Thank you for contacting us. We'll get back to you soon.",
+      });
+      reset();
+    } catch (err) {
+      toast({
+        title: "Failed to send message",
+        description: "Please try again later or email us directly.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -173,6 +207,11 @@ const ContactPage = () => {
                   </>
                 )}
               </Button>
+              {!contactEndpoint && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Tip: Configure VITE_CONTACT_ENDPOINT to enable email delivery.
+                </p>
+              )}
             </form>
           </CardContent>
         </Card>
