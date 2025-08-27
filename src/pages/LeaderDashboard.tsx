@@ -13,7 +13,8 @@ import {
   UserCheck, 
   UserX,
   Clock,
-  ArrowLeft
+  ArrowLeft,
+  Download
 } from 'lucide-react';
 import { getSession, getMemberStats } from '@/lib/session';
 import { TripSession } from '@/types/session';
@@ -80,6 +81,26 @@ const LeaderDashboard = () => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleDownloadCSV = () => {
+    if (!session) return;
+
+    const header = ['Name'];
+    const rows = session.members.map((member) => [member.name]);
+    const csv = [header, ...rows]
+      .map((row) => row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `members-${session.id}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   if (!session) {
@@ -230,14 +251,24 @@ const LeaderDashboard = () => {
                   <Users className="h-5 w-5" />
                   Members ({stats.present}/{stats.total})
                 </CardTitle>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleRefresh}
-                >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleDownloadCSV}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download CSV
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleRefresh}
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh
+                  </Button>
+                </div>
               </div>
               <CardDescription>
                 Real-time attendance tracking
