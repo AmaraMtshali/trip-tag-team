@@ -86,8 +86,8 @@ const LeaderDashboard = () => {
   const handleDownloadCSV = () => {
     if (!session) return;
 
-    const header = ['Name', 'Role'];
-    const rows = session.members.map((member) => [member.name, member.role === 'leader' ? 'Leader' : 'Member']);
+    const header = ['Name','Role','Presense Status','Timestamp'];
+    const rows = session.members.map((member) => [member.name, member.role === 'leader' ? 'Leader' : 'Member', member.status === 'present' ? 'Present' : 'Missing'	, new Date(member.joinedAt).toLocaleString()]);
     const csv = [header, ...rows]
       .map((row) => row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(','))
       .join('\n');
