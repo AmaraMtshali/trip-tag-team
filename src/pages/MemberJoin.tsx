@@ -15,6 +15,7 @@ const MemberJoin = () => {
   const { toast } = useToast();
   const [session, setSession] = useState<TripSession | null>(null);
   const [memberName, setMemberName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [isJoining, setIsJoining] = useState(false);
   const [joinedMember, setJoinedMember] = useState<Member | null>(null);
 
@@ -52,7 +53,7 @@ const MemberJoin = () => {
 
     setIsJoining(true);
     try {
-      const member = addMember(sessionId, memberName.trim());
+      const member = addMember(sessionId, memberName.trim(), phoneNumber.trim());
       if (member) {
         setJoinedMember(member);
         toast({
@@ -112,6 +113,11 @@ const MemberJoin = () => {
               <div className="text-sm text-muted-foreground">
                 Joined at {new Date(joinedMember.joinedAt).toLocaleTimeString()}
               </div>
+              {joinedMember.phoneNumber && (
+                <div className="text-sm text-muted-foreground mt-1">
+                  Phone: {joinedMember.phoneNumber}
+                </div>
+              )}
             </div>
 
             <div className="space-y-2 text-sm text-muted-foreground">
@@ -178,6 +184,22 @@ const MemberJoin = () => {
                 className="h-12 text-base"
                 onKeyPress={(e) => e.key === 'Enter' && handleJoin()}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone-number">Phone Number (Optional)</Label>
+              <Input
+                id="phone-number"
+                type="tel"
+                placeholder="e.g., +1 (555) 123-4567"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                className="h-12 text-base"
+                onKeyPress={(e) => e.key === 'Enter' && handleJoin()}
+              />
+              <p className="text-xs text-muted-foreground">
+                Your phone number will be shared with the trip leader for emergency contact
+              </p>
             </div>
 
             <Button

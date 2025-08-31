@@ -14,9 +14,11 @@ import {
   UserX,
   Clock,
   ArrowLeft,
-  Download
+  Download,
+  Phone,
+  Copy
 } from 'lucide-react';
-import { getSession, getMemberStats } from '@/lib/session';
+import { getSession, getMemberStats, debugSessionInfo } from '@/lib/session';
 import { TripSession } from '@/types/session';
 import { useToast } from '@/hooks/use-toast';
 
@@ -83,11 +85,51 @@ const LeaderDashboard = () => {
     }
   };
 
+  const copyPhoneNumber = async (phoneNumber: string, memberName: string) => {
+    try {
+      await navigator.clipboard.writeText(phoneNumber);
+      toast({
+        title: "Phone number copied!",
+        description: `${memberName}'s phone number copied to clipboard.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Copy failed",
+        description: "Please copy the phone number manually.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDebug = () => {
+    if (!sessionId) return;
+    
+    const debugInfo = debugSessionInfo(sessionId);
+    if (debugInfo) {
+      toast({
+        title: "Debug info logged",
+        description: "Check browser console for detailed information.",
+      });
+    } else {
+      toast({
+        title: "Debug failed",
+        description: "Could not retrieve session information.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleDownloadCSV = () => {
     if (!session) return;
 
-    const header = ['Name','Role','Presense Status','Timestamp'];
-    const rows = session.members.map((member) => [member.name, member.role === 'leader' ? 'Leader' : 'Member', member.status === 'present' ? 'Present' : 'Missing'	, new Date(member.joinedAt).toLocaleString()]);
+    const header = ['Name','Role','Phone Number','Presence Status','Timestamp'];
+    const rows = session.members.map((member) => [
+      member.name, 
+      member.role === 'leader' ? 'Leader' : 'Member', 
+      member.phoneNumber || 'N/A',
+      member.status === 'present' ? 'Present' : 'Missing',
+      new Date(member.joinedAt).toLocaleString()
+    ]);
     const csv = [header, ...rows]
       .map((row) => row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(','))
       .join('\n');
@@ -248,64 +290,145 @@ const LeaderDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Member List */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Members ({stats.present}/{stats.total})
-                </CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleDownloadCSV}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download CSV
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleRefresh}
-                  >
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Refresh
-                  </Button>
-                </div>
-              </div>
-              <CardDescription>
-                Real-time attendance tracking
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {session.members.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                  <p>No members have joined yet</p>
-                  <p className="text-sm">Share the QR code to get started</p>
-                </div>
-              ) : (
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {session.members.map((member) => (
-                    <div
-                      key={member.id}
-                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+          {/* Member Lists */}
+          <div className="space-y-6">
+            {/* Present Members */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-success">
+                    <UserCheck className="h-5 w-5" />
+                    Present Members ({stats.present})
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleDownloadCSV}
                     >
-                      <div className="flex-1">
-                        <div className="font-medium">{member.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          Joined: {new Date(member.joinedAt).toLocaleTimeString()}
-                        </div>
-                      </div>
-                      <StatusBadge status={member.status} />
-                    </div>
-                  ))}
+                      <Download className="h-4 w-4 mr-2" />
+                      Download CSV
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleRefresh}
+                    >
+                      <RefreshCw className="h-4 w-4 mr-2" />
+                      Refresh
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleDebug}
+                    >
+                      Debug
+                    </Button>
+                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                <CardDescription>
+                  Members who have checked in
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {session.members.filter(member => member.status === 'present').length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <UserCheck className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No members are present yet</p>
+                    <p className="text-sm">Share the QR code to get started</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-48 overflow-y-auto">
+                    {session.members
+                      .filter(member => member.status === 'present')
+                      .map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors bg-success/5 border-success/20"
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium">{member.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              Joined: {new Date(member.joinedAt).toLocaleTimeString()}
+                            </div>
+                            {member.phoneNumber && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <Phone className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">{member.phoneNumber}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 hover:bg-muted"
+                                  onClick={() => copyPhoneNumber(member.phoneNumber!, member.name)}
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                          <StatusBadge status={member.status} />
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Missing Members */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-destructive">
+                  <UserX className="h-5 w-5" />
+                  Missing Members ({stats.missing})
+                </CardTitle>
+                <CardDescription>
+                  Members who haven't checked in yet
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {session.members.filter(member => member.status === 'missing').length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <UserX className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>All members are present!</p>
+                    <p className="text-sm">Great job getting everyone checked in</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 max-h-48 overflow-y-auto">
+                    {session.members
+                      .filter(member => member.status === 'missing')
+                      .map((member) => (
+                        <div
+                          key={member.id}
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors bg-destructive/5 border-destructive/20"
+                        >
+                          <div className="flex-1">
+                            <div className="font-medium">{member.name}</div>
+                            <div className="text-sm text-muted-foreground">
+                              Role: {member.role === 'leader' ? 'Leader' : 'Member'}
+                            </div>
+                            {member.phoneNumber && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <Phone className="h-3 w-3 text-muted-foreground" />
+                                <span className="text-xs text-muted-foreground">{member.phoneNumber}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 hover:bg-muted"
+                                  onClick={() => copyPhoneNumber(member.phoneNumber!, member.name)}
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+                          <StatusBadge status={member.status} />
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Session Info */}

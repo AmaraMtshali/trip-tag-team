@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 const HomePage = () => {
   const [tripName, setTripName] = useState('');
   const [leaderName, setLeaderName] = useState('');
+  const [leaderPhone, setLeaderPhone] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -35,7 +36,7 @@ const HomePage = () => {
 
     setIsCreating(true);
     try {
-      const session = createSession(tripName.trim(), leaderName.trim());
+      const session = createSession(tripName.trim(), leaderName.trim(), leaderPhone.trim());
       toast({
         title: "Trip session created!",
         description: `Session "${session.name}" is ready for check-ins.`,
@@ -142,6 +143,20 @@ const HomePage = () => {
                 onChange={(e) => setLeaderName(e.target.value)}
                 className="h-12 text-base"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="leader-phone">Your Phone Number (Optional)</Label>
+              <Input
+                id="leader-phone"
+                type="tel"
+                placeholder="e.g., +1 (555) 123-4567"
+                value={leaderPhone}
+                onChange={(e) => setLeaderPhone(e.target.value)}
+                className="h-12 text-base"
+              />
+              <p className="text-xs text-muted-foreground">
+                Your phone number will be shared with members for emergency contact
+              </p>
             </div>
             
             <Button

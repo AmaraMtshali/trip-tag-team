@@ -1,6 +1,7 @@
 export interface Member {
   id: string;
   name: string;
+  phoneNumber?: string;
   joinedAt: Date;
   status: 'joined' | 'missing' | 'present';
   lastActivity: Date;
