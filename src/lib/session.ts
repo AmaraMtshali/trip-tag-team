@@ -34,7 +34,7 @@ function getBaseUrl(): string {
   }
   
   // Fallback for server-side rendering or edge cases
-  return 'https://your-deployed-domain.com';
+  return 'https://busbuddy-gamma.vercel.app/';
 }
 
 export function createSession(name: string, leaderName?: string, leaderPhone?: string): TripSession {
