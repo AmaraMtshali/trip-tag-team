@@ -1,0 +1,17 @@
+{
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon index.js",
+        "setup": "node setup.js",
+        "test-env": "node scripts/testSupabaseClient.js"
+    },
+    "dependencies": {
+        "@supabase/supabase-js": "^2.x",
+        "dotenv": "^16.x",
+        "express": "^4.x",
+        "nanoid": "^4.x"
+    },
+    "devDependencies": {
+        "nodemon": "^2.0.22"
+    }
+}
