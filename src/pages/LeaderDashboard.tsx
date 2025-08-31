@@ -18,17 +18,18 @@ import {
   Phone,
   Copy
 } from 'lucide-react';
-import { getSession, getMemberStats, debugSessionInfo } from '@/lib/session';
-import { TripSession } from '@/types/session';
+import { apiService, Session, Member } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
 const LeaderDashboard = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [session, setSession] = useState<TripSession | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
   const [showCheckOutQR, setShowCheckOutQR] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(new Date());
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (!sessionId) {
@@ -36,33 +37,35 @@ const LeaderDashboard = () => {
       return;
     }
 
-    loadSession();
+    loadSessionData();
     
     // Auto-refresh every 10 seconds for real-time updates
-    const interval = setInterval(loadSession, 10000);
+    const interval = setInterval(loadSessionData, 10000);
     return () => clearInterval(interval);
   }, [sessionId, navigate]);
 
-  const loadSession = () => {
+  const loadSessionData = async () => {
     if (!sessionId) return;
     
-    const currentSession = getSession(sessionId);
-    if (!currentSession) {
+    try {
+      const { session: currentSession, members: sessionMembers } = await apiService.getSessionWithMembers(sessionId);
+      setSession(currentSession);
+      setMembers(sessionMembers);
+      setLastRefresh(new Date());
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error loading session data:', error);
       toast({
         title: "Session not found",
         description: "This session may have expired or doesn't exist.",
         variant: "destructive"
       });
       navigate('/');
-      return;
     }
-
-    setSession(currentSession);
-    setLastRefresh(new Date());
   };
 
   const handleRefresh = () => {
-    loadSession();
+    loadSessionData();
     toast({
       title: "Refreshed",
       description: "Member list updated successfully.",
@@ -101,34 +104,16 @@ const LeaderDashboard = () => {
     }
   };
 
-  const handleDebug = () => {
-    if (!sessionId) return;
-    
-    const debugInfo = debugSessionInfo(sessionId);
-    if (debugInfo) {
-      toast({
-        title: "Debug info logged",
-        description: "Check browser console for detailed information.",
-      });
-    } else {
-      toast({
-        title: "Debug failed",
-        description: "Could not retrieve session information.",
-        variant: "destructive"
-      });
-    }
-  };
-
   const handleDownloadCSV = () => {
-    if (!session) return;
+    if (!session || !members.length) return;
 
     const header = ['Name','Role','Phone Number','Presence Status','Timestamp'];
-    const rows = session.members.map((member) => [
+    const rows = members.map((member) => [
       member.name, 
       member.role === 'leader' ? 'Leader' : 'Member', 
-      member.phoneNumber || 'N/A',
+      member.phone_number || 'N/A',
       member.status === 'present' ? 'Present' : 'Missing',
-      new Date(member.joinedAt).toLocaleString()
+      new Date(member.joined_at).toLocaleString()
     ]);
     const csv = [header, ...rows]
       .map((row) => row.map((field) => `"${String(field).replace(/"/g, '""')}"`).join(','))
@@ -138,14 +123,14 @@ const LeaderDashboard = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `members-${session.id}.csv`);
+    link.setAttribute('download', `members-${session.short_id}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
 
-  if (!session) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -156,8 +141,28 @@ const LeaderDashboard = () => {
     );
   }
 
-  const stats = getMemberStats(session);
-  const currentQRUrl = showCheckOutQR ? session.checkOutUrl : session.checkInUrl;
+  if (!session) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Session not found</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Calculate stats
+  const stats = {
+    total: members.length,
+    present: members.filter(m => m.status === 'present').length,
+    missing: members.filter(m => m.status === 'missing').length
+  };
+
+  // Generate QR URLs
+  const baseUrl = window.location.origin;
+  const checkInUrl = `${baseUrl}/join/${session.short_id}`;
+  const checkOutUrl = `${baseUrl}/checkout/${session.short_id}`;
+  const currentQRUrl = showCheckOutQR ? checkOutUrl : checkInUrl;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-secondary/20 to-primary/5">
@@ -178,7 +183,7 @@ const LeaderDashboard = () => {
                 {session.name}
               </h1>
               <p className="text-sm text-muted-foreground">
-                Session ID: {session.id}
+                Session ID: {session.short_id}
               </p>
             </div>
           </div>
@@ -190,9 +195,9 @@ const LeaderDashboard = () => {
             </Button>
           </div>
         </div>
-        {session.leaderName && (
+        {session.leader_name && (
           <div className="mb-4 text-sm text-muted-foreground">
-            Leader: <span className="font-medium text-foreground">{session.leaderName}</span>
+            Leader: <span className="font-medium text-foreground">{session.leader_name}</span>
           </div>
         )}
 
@@ -317,13 +322,6 @@ const LeaderDashboard = () => {
                       <RefreshCw className="h-4 w-4 mr-2" />
                       Refresh
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={handleDebug}
-                    >
-                      Debug
-                    </Button>
                   </div>
                 </div>
                 <CardDescription>
@@ -331,7 +329,7 @@ const LeaderDashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {session.members.filter(member => member.status === 'present').length === 0 ? (
+                {members.filter(member => member.status === 'present').length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <UserCheck className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>No members are present yet</p>
@@ -339,7 +337,7 @@ const LeaderDashboard = () => {
                   </div>
                 ) : (
                   <div className="space-y-3 max-h-48 overflow-y-auto">
-                    {session.members
+                    {members
                       .filter(member => member.status === 'present')
                       .map((member) => (
                         <div
@@ -349,17 +347,17 @@ const LeaderDashboard = () => {
                           <div className="flex-1">
                             <div className="font-medium">{member.name}</div>
                             <div className="text-sm text-muted-foreground">
-                              Joined: {new Date(member.joinedAt).toLocaleTimeString()}
+                              Joined: {new Date(member.joined_at).toLocaleTimeString()}
                             </div>
-                            {member.phoneNumber && (
+                            {member.phone_number && (
                               <div className="flex items-center gap-2 mt-1">
                                 <Phone className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground">{member.phoneNumber}</span>
+                                <span className="text-xs text-muted-foreground">{member.phone_number}</span>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="h-6 w-6 p-0 hover:bg-muted"
-                                  onClick={() => copyPhoneNumber(member.phoneNumber!, member.name)}
+                                  onClick={() => copyPhoneNumber(member.phone_number!, member.name)}
                                 >
                                   <Copy className="h-3 w-3" />
                                 </Button>
@@ -386,7 +384,7 @@ const LeaderDashboard = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {session.members.filter(member => member.status === 'missing').length === 0 ? (
+                {members.filter(member => member.status === 'missing').length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <UserX className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>All members are present!</p>
@@ -394,7 +392,7 @@ const LeaderDashboard = () => {
                   </div>
                 ) : (
                   <div className="space-y-3 max-h-48 overflow-y-auto">
-                    {session.members
+                    {members
                       .filter(member => member.status === 'missing')
                       .map((member) => (
                         <div
@@ -406,15 +404,15 @@ const LeaderDashboard = () => {
                             <div className="text-sm text-muted-foreground">
                               Role: {member.role === 'leader' ? 'Leader' : 'Member'}
                             </div>
-                            {member.phoneNumber && (
+                            {member.phone_number && (
                               <div className="flex items-center gap-2 mt-1">
                                 <Phone className="h-3 w-3 text-muted-foreground" />
-                                <span className="text-xs text-muted-foreground">{member.phoneNumber}</span>
+                                <span className="text-xs text-muted-foreground">{member.phone_number}</span>
                                 <Button
                                   variant="ghost"
                                   size="sm"
                                   className="h-6 w-6 p-0 hover:bg-muted"
-                                  onClick={() => copyPhoneNumber(member.phoneNumber!, member.name)}
+                                  onClick={() => copyPhoneNumber(member.phone_number!, member.name)}
                                 >
                                   <Copy className="h-3 w-3" />
                                 </Button>
@@ -435,8 +433,8 @@ const LeaderDashboard = () => {
         <Card className="mt-6">
           <CardContent className="p-4">
             <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-              <div>Created: {new Date(session.createdAt).toLocaleString()}</div>
-              <div>Expires: {new Date(session.expiresAt).toLocaleString()}</div>
+              <div>Created: {new Date(session.created_at).toLocaleString()}</div>
+              <div>Expires: {new Date(session.expires_at).toLocaleString()}</div>
               <div>Last updated: {lastRefresh.toLocaleTimeString()}</div>
             </div>
           </CardContent>

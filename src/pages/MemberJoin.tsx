@@ -5,15 +5,14 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { CheckCircle, Bus, UserCheck, ArrowLeft } from 'lucide-react';
-import { getSession, addMember } from '@/lib/session';
-import { TripSession, Member } from '@/types/session';
+import { apiService, Session, Member } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
 const MemberJoin = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [session, setSession] = useState<TripSession | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [memberName, setMemberName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isJoining, setIsJoining] = useState(false);
@@ -25,19 +24,23 @@ const MemberJoin = () => {
       return;
     }
 
-    const currentSession = getSession(sessionId);
-    if (!currentSession) {
+    loadSession();
+  }, [sessionId, navigate]);
+
+  const loadSession = async () => {
+    try {
+      const currentSession = await apiService.getSessionByShortId(sessionId);
+      setSession(currentSession);
+    } catch (error) {
+      console.error('Error loading session:', error);
       toast({
         title: "Session not found",
         description: "This session may have expired or doesn't exist.",
         variant: "destructive"
       });
       navigate('/');
-      return;
     }
-
-    setSession(currentSession);
-  }, [sessionId, navigate, toast]);
+  };
 
   const handleJoin = async () => {
     if (!memberName.trim()) {
@@ -49,28 +52,25 @@ const MemberJoin = () => {
       return;
     }
 
-    if (!sessionId) return;
+    if (!sessionId || !session) return;
 
     setIsJoining(true);
     try {
-      const member = addMember(sessionId, memberName.trim(), phoneNumber.trim());
-      if (member) {
-        setJoinedMember(member);
-        toast({
-          title: "Successfully checked in!",
-          description: `Welcome to ${session?.name}`,
-        });
-      } else {
-        toast({
-          title: "Failed to join",
-          description: "Please try again.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
+      const member = await apiService.addMember(session.id, {
+        name: memberName.trim(),
+        phoneNumber: phoneNumber.trim() || undefined
+      });
+      
+      setJoinedMember(member);
       toast({
-        title: "Error joining session",
-        description: "Please try again.",
+        title: "Successfully checked in!",
+        description: `Welcome to ${session.name}`,
+      });
+    } catch (error) {
+      console.error('Error joining session:', error);
+      toast({
+        title: "Failed to join",
+        description: error instanceof Error ? error.message : "Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -111,11 +111,11 @@ const MemberJoin = () => {
                 <span className="font-medium">{joinedMember.name}</span>
               </div>
               <div className="text-sm text-muted-foreground">
-                Joined at {new Date(joinedMember.joinedAt).toLocaleTimeString()}
+                Joined at {new Date(joinedMember.joined_at).toLocaleTimeString()}
               </div>
-              {joinedMember.phoneNumber && (
+              {joinedMember.phone_number && (
                 <div className="text-sm text-muted-foreground mt-1">
-                  Phone: {joinedMember.phoneNumber}
+                  Phone: {joinedMember.phone_number}
                 </div>
               )}
             </div>
@@ -159,8 +159,8 @@ const MemberJoin = () => {
           <p className="text-muted-foreground">
             {session.name}
           </p>
-          {session.leaderName && (
-            <p className="text-xs text-muted-foreground mt-1">Created by {session.leaderName}</p>
+          {session.leader_name && (
+            <p className="text-xs text-muted-foreground mt-1">Created by {session.leader_name}</p>
           )}
         </div>
 
@@ -230,8 +230,8 @@ const MemberJoin = () => {
           <CardContent className="p-4 text-center">
             <div className="text-sm text-muted-foreground space-y-1">
               <p><strong>Trip:</strong> {session.name}</p>
-              <p><strong>Session ID:</strong> {session.id}</p>
-              <p><strong>Created:</strong> {new Date(session.createdAt).toLocaleString()}</p>
+              <p><strong>Session ID:</strong> {session.short_id}</p>
+              <p><strong>Created:</strong> {new Date(session.created_at).toLocaleString()}</p>
             </div>
           </CardContent>
         </Card>

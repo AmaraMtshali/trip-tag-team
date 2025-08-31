@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Bus, Users, QrCode, CheckCircle, Mail } from 'lucide-react';
-import { createSession } from '@/lib/session';
+import { apiService } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
 const HomePage = () => {
@@ -36,16 +36,25 @@ const HomePage = () => {
 
     setIsCreating(true);
     try {
-      const session = createSession(tripName.trim(), leaderName.trim(), leaderPhone.trim());
+      const result = await apiService.createSession({
+        name: tripName.trim(),
+        leaderName: leaderName.trim(),
+        leaderPhone: leaderPhone.trim() || undefined,
+        durationMs: 24 * 60 * 60 * 1000 // 24 hours
+      });
+
       toast({
         title: "Trip session created!",
-        description: `Session "${session.name}" is ready for check-ins.`,
+        description: `Session "${result.session.name}" is ready for check-ins.`,
       });
-      navigate(`/leader/${session.id}`);
+      
+      // Navigate to leader dashboard using the short_id
+      navigate(`/leader/${result.session.short_id}`);
     } catch (error) {
+      console.error('Error creating session:', error);
       toast({
         title: "Error creating session",
-        description: "Please try again.",
+        description: error instanceof Error ? error.message : "Please try again.",
         variant: "destructive"
       });
     } finally {

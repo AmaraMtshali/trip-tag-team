@@ -3,6 +3,8 @@
         "start": "node index.js",
         "dev": "nodemon index.js",
         "setup": "node setup.js",
+        "setup-db": "node setupDatabase.js",
+        "fix-db": "node fixDatabase.js",
         "test-env": "node scripts/testSupabaseClient.js"
     },
     "dependencies": {

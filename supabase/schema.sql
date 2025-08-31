@@ -1,11 +1,12 @@
 -- Bus Buddy Database Schema
 -- Run this in your Supabase SQL Editor
 
--- Enable Row Level Security
-ALTER DATABASE postgres SET "app.jwt_secret" TO 'your-jwt-secret';
+-- Drop existing tables if they exist (for clean setup)
+DROP TABLE IF EXISTS members CASCADE;
+DROP TABLE IF EXISTS sessions CASCADE;
 
 -- Create sessions table
-CREATE TABLE IF NOT EXISTS sessions (
+CREATE TABLE sessions (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     short_id VARCHAR(10) UNIQUE NOT NULL,
     name VARCHAR(255) NOT NULL,
@@ -18,7 +19,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 
 -- Create members table
-CREATE TABLE IF NOT EXISTS members (
+CREATE TABLE members (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     session_id UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
     name VARCHAR(255) NOT NULL,
@@ -33,10 +34,10 @@ CREATE TABLE IF NOT EXISTS members (
 );
 
 -- Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_sessions_short_id ON sessions(short_id);
-CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
-CREATE INDEX IF NOT EXISTS idx_members_session_id ON members(session_id);
-CREATE INDEX IF NOT EXISTS idx_members_status ON members(status);
+CREATE INDEX idx_sessions_short_id ON sessions(short_id);
+CREATE INDEX idx_sessions_expires_at ON sessions(expires_at);
+CREATE INDEX idx_members_session_id ON members(session_id);
+CREATE INDEX idx_members_status ON members(status);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE sessions ENABLE ROW LEVEL SECURITY;

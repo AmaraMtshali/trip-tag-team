@@ -69,8 +69,25 @@ router.get('/short/:shortId', async (req, res) => {
     const { shortId } = req.params;
     const { data, error } = await supabase
       .from('sessions')
-      .select('id, short_id, name, created_at, expires_at')
+      .select('*')
       .eq('short_id', shortId)
+      .single();
+
+    if (error) return res.status(404).json({ error: 'Session not found' });
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Get session by ID (for internal use)
+router.get('/:sessionId', async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const { data, error } = await supabase
+      .from('sessions')
+      .select('*')
+      .eq('id', sessionId)
       .single();
 
     if (error) return res.status(404).json({ error: 'Session not found' });
